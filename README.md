@@ -636,3 +636,9 @@ Let's add it to our system. In order to do that, modify our `docker-compose.yml`
     depends_on:
         - ms-redis-cache
     ```
+    
+You can now test the computation part on the project after a `docker-compose up --build` !
+
+## Part 2
+
+See you next time ! :)
