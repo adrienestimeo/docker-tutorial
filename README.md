@@ -120,7 +120,7 @@ CMD [ "arg_1", "arg_2", "arg_3"]
 
 ### Docker compose
 
-***docker-compose*** lets you build and run multiple containers as you can do with a script. The goal is to clean how you organize your application(s), and use a "configuration" file instead of script. Check the following example showing how a project which uses `nginx` (Reverse proxy), `node` (Server logic) and `mongo` (Database) is built:
+***docker-compose*** lets you build and run multiple containers as you can do with a script. The goal is to clean how you organize your application(s), and use a "configuration" file instead of script. Check the following example showing how a project which uses `traefik` (Reverse proxy), `node` (Server logic and worker) and `mongo` (Database) with 2 distinct networks in a version `3.2` of docker-compose:
 
 ```dockerfile
 
