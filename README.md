@@ -302,7 +302,7 @@ docker stop imagename
 docker rm imagename
 ```
 
-## Tutorial part 1
+## Tutorial part 1: Environment
 
 ### Overview
 
@@ -639,6 +639,410 @@ Let's add it to our system. In order to do that, modify our `docker-compose.yml`
     
 You can now test the computation part on the project after a `docker-compose up --build` !
 
-## Part 2
+## Part 2: DevOps
 
-See you next time ! :)
+We now have a small micro-service architecture project running, with a well tested service. Lets secure our development and deployment step.
+
+### Protect the forest !
+
+First step is to protect our newly created micro-service **ms-number-computer**:
+
+* Disable push on master
+* Require *pull request* AND reviews before merging
+* Require automatics test checks to pass before merging (This part will be added later, with our CI)
+
+All these options are available on Github, Gitlab or Bitbucket. Let's see how it is done on Github:
+
+1. Go to the web interface of your project *ms-number-computer*
+2. Go on the **Settings** tab
+3. Select **Branches** on the side bar
+4. Add new **Branch protection rules**
+5. Add *master* to the **Branch name pattern** input
+6. Check **Require pull request reviews before merging** with **1 approving review required**
+7. Check **Include administrators** in order to apply these rules to everyone (including yourself)
+8. Click on **Create** button at the bottom of the page
+
+If everything's fine, you should see your new rule applied to 1 branch: master
+
+You can test it by modifying your README.md by adding the fact that *master* branch is now protected against unsafe push, then:
+* `git add ./README.md` to add our file to push,
+* `git commit -m "README.md updated to explain master branch is now protected"` to explain what we ahve done
+* `git push origin master` to (try to) push our changes
+
+You should see an error message explaining that your branch is protected and you cannot push. If not, you did not configured your repo correctly.
+
+### Process and Methodology of development using *pull request*
+
+In order to avoid technical debt and bugs, the development of a new feature / new page has to follow the following workflow:
+
+1. Create a new branch
+2. Develop & Add commits
+3. Open a `pull request` on github
+4. Discuss & code review
+5. Deployment to test environment
+6. Merge on `master` branch
+
+![Alt text](./github_workflow.jpg?raw=true "Github Workflow")
+
+#### Create a new branch
+
+The default branch (production ready) is `master`. This branch is protected by design to avoid forced push. In order to contribute to this branch, it is mandatory to create a new one named by the feature/page which will be crafted.
+
+The command to create a new branch is `git checkout -b feature-<my-feature>` or `git checkout -b page-<my-page>`.
+
+> Always prexif the branch's name with a label in order to understand clearly its puporse.
+
+In our case, you can user: `git checkout -b documentation-readme`
+
+> You can check on which branch you are with `git branch` command
+
+You can now start to develop.
+
+#### Develop & Add Commits
+
+It is common and recommended to commit and push as often as possible (`atomic commit`), to avoid code's loss.
+Using `git add <my-file>` and `git commit -m '<what-I-did>'` followed by `git push origin <newly-created-branch>`.
+
+> `Atomic commit` - Every commit should be related to one feature only. Do not make a commit which is related to even two features.
+>
+> If it's possible, commit only code which does not create bug. It is better to return an error (ex: `new Error('Not implemented.');` which will be cauth than create a random crash inside the application.
+
+#### Open a `pull request` on github
+
+Pull Requests initiate discussion about your commits. You can open a Pull Request at any point during the development process, but it would be more interesting to open it when the feature/page is quite done, in order to ask others their opinion and/or to test it.
+
+To create a new `pull request`, simply navigate to the github page of the project, then:
+
+1. Select the appropriate branch you are working on (and you want to initialize the pull request)
+2. Click on `New pull request` button.
+
+![Alt text](./pull_request_1.jpg?raw=true "Create pull request (1)")
+
+
+From this page, you only have to:
+
+1. Fulfill the name of the pull request (branch name by default)
+2. Write a comment about your code/update [optional]
+3. Click on `Create pull request` button.
+
+![Alt text](./pull_request_2.jpg?raw=true "Create pull request (2)")
+
+
+#### Discuss & code review
+
+This is an important step which lets you check the code difference, see automatic test coverage and discuss about the new code.
+Even if a pull request has been opened, you can still commit and push new code, in order to fix the current feature.
+
+#### Deployment to test environment
+
+It is interesting to try the newly feature inside a test environment in order to checkout if the new feature is totally merge with the existing code et does not break anything. The code coverage is not enough and testing in the production environment is not viable.
+
+#### Merge on `master` branch
+
+When the feature/page is production ready, we juste have to close the pull request by clicking on the `Merge pull request` button.
+
+![Alt text](./pull_request_3.jpg?raw=true "Close pull request")
+
+> You will notice that **you cannot merge the pull request** for now. The reason is that a code review for a pull request HAS TO be done by someone else than the pull request author, in order to protect the project. You have now 2 options:
+> * Add one of your friend to collaborate on your repo so he can review and accept your pull request, then you can do the same for him/her (Recommended)
+> * Remove temporarily the *Require pull request reviews before merging* options on our branch rule (Not recommended)
+>
+> I Strongly recommend the first option, so you can test how it's done in the real life.
+
+### CI
+
+One of the core element of a DevOps approach is the CI and its capacity of automatize process. In our case, we gonna use the CI to test our project every time we push to a branch
+For this tutorial, we will use **[Circle CI](https://circleci.com/)**. You can create a new account using Github or Bitbucket credentials or connect to them later. In order to use it, we will need to set up our *ms-number-computer*:
+
+1. Click on **add project** on the side bar
+2. Click on **Set Up Project** on *ms-number-computer*
+3. Click on **Start Building** then **Add Config**
+
+You should see the jobs processing.
+
+> What happened:
+>
+> CircleCI added the new configuration file to your repo (`./circleci/config.yml`) under a new branch `circleci-project-setup` and started the build for you.
+>
+> The content of `./circleci/config.yml` is the following:
+>
+> ```
+> version: 2.1
+>   orbs:
+>     node: circleci/node@1.1.6
+>   jobs:
+>     build-and-test:
+>       executor:
+>         name: node/default
+>       steps:
+>         - checkout
+>         - node/with-cache:
+>             steps:
+>               - run: npm install
+>               - run: npm test
+>   workflows:
+>       build-and-test:
+>         jobs:
+>           - build-and-test
+> ```
+
+Now that the configuration is done, you can simply open a new pull request on the `circleci-project-setup` branch and merge it in order to correctly add the CI configuration to your repo. Every push on every branch will now trigger the CI with our test.
+
+The last step is to edit our branch rules and add an automatic status check in order to merge pull request.
+
+> Here is the summary of a good project start:
+>
+> 1. Create the project on your favorite subversion tool
+> 2. Protect the main branch by removing all direct push to it, from any user including admins and owner
+> 3. Try to request at least 1 code review from a pair when opening a pull request
+> 4. Connect a CI with automatic testing step in order to force non-regression in case of merging with the main branch
+>
+> If the previous steps are respected, then you can start to develop and to deploy
+
+### Sentry
+
+We have here a good start: A project with a TDD methodology, with protected push and automatic testing. But what if an error or a crash occurs in production ? It's important to be alerted.
+
+In this tutorial, we gonna use **[Sentry IO](https://sentry.io/)**.
+
+Like for Circle CI, create a new **Node.js** project which you can name *ms-computer-number* and follow the configuration proposed. You can add the `javascript` code ad the beginning of the `manager.js` file. Again, commit and push this new configuration to your repo ("*Hello new pull request*"). And *voila* ! You now have a crash/bug alert on your micro-service !
+
+
+## Tutorial part 3: Bring everything together
+
+This last part is more open than the previous ones. It's a training for your defense's project.
+The goal is to create new micro-service from scratch, following the next tips:
+
+* Create a repository `~ 30sec`
+* Secure your repository and master branch `~ 2 min`
+* Create the architecture of your micro-service and commands to run it and test it `~ 10 min`
+* Dockerize it `~ 3 min`
+* Add Circle CI (or any CI) `~ 5 min`
+* Add Sentry (or any crash report) `~ 5 min`
+* Start by writing a test suit for a feature of your micro-service  `~ 15 min`
+* Use TDD approach to develop this feature `~ 15 min`
+
+* `TOTAL: 55 min and 30 sec`
+
+Here are some ideas of micro-service:
+
+* International clock
+* Weather information
+* (fake-)News
+* Old school project
+* Another calculator service to multiply
+* Tic Tac Toe
+
+If you dont not how to start, here are the draft for two files which can help you if you want to create a micro-service in NodeJS: `manager.js` & `package.json`:
+
+
+`manager.js`
+```
+const MM = require('ms-manager');
+let config = require(`./config.json`) || {};
+
+MM.init(config, (err, serviceInfo) => {
+    if (err) {
+        return console.error(err);
+    }
+
+    /**
+     * Our micro-service is now up.
+     * */
+    console.log('#Micro-service UP#');
+
+    /**
+     * You can now subscribe to specific message
+     */
+    MM.subscribe('hello', (bdy, msg) => {
+        /**
+         * TODO: Change for somethingelse
+         **/
+        msg.reply({ 'hello': 'world });
+    });
+    
+    MM.subscribe('error', (bdy, msg) => {
+        /**
+         * Useful to test your crash report
+         **/
+        const err = new Error('Not implemented');
+        throw err;
+        
+        // msg.replyErr(err);
+    });
+});
+```
+
+`package.json`
+```
+{
+  "name": "ms-another-service",
+  "version": "1.0.0",
+  "description": "Main computer",
+  "author": "Adrien Fenech <adrien.fenech@estimeo.com>",
+  "main": "manager.js",
+  "scripts": {
+    "development": "node manager.js",
+    "test": "mocha **.spec.js"
+  },
+  "devDependencies": {
+    "mocha": "^4.0.1",
+    "chai": "^4.1.2"
+  },
+  "dependencies": {
+    "ms-manager": "^0.1.0"
+  }
+}
+```
+
+## To go further
+
+You can also make your application stronger with the following points:
+
+* Scale your critical micro-services with Docker
+* Automatic vertical/horizontal scaling
+* Notify Slack (or whatever) if a crash or something went wrong
+* Monitor your server / micro-services (Duo Prometheus / Grafana)
+* Auto-create ticket in case of *error* with notification and attribution
+
+### Docker registry
+
+Private remote docker registry needs a server and specific certificate (SSL/TLS), which you can get via **[Letsencrypt](https://letsencrypt.org/)**.
+Our private registry will be accessible via `registery.mydomain.com`. We assume that this server works with docker-compose and with a reverse proxy like **[Nginx](https://www.nginx.com/)**
+
+**Inside the server**, where the registry should be hosted:
+
+> We assume that the current directory is where the `docker-compose.yml` is located.
+
+Create a `auth/` and `data/` folder.
+
+* `mkdir -p auth data`
+
+Add a new upstream inside the `nginx.conf` configuration file with a specific api version variable:
+
+```
+  upstream docker-registry {
+    server registry:5000;
+  }
+  
+  ## Set a variable to help us decide if we need to add the
+  ## 'Docker-Distribution-Api-Version' header.
+  ## The registry always sets this header.
+  ## In the case of nginx performing auth, the header is unset
+  ## since nginx is auth-ing before proxying.
+  map $upstream_http_docker_distribution_api_version $docker_distribution_api_version {
+    '' 'registry/2.0';
+  }
+```
+and a new entry: 
+
+```
+  server {
+    listen 443 ssl;
+    server_name registry.mydomain.com;
+
+    # SSL
+    ssl_certificate /etc/nginx/ssl/fullchain_registry.pem;
+    ssl_certificate_key /etc/nginx/ssl/privkey_registry.pem;
+
+    # Recommendations from https://raymii.org/s/tutorials/Strong_SSL_Security_On_nginx.html
+    ssl_protocols TLSv1.1 TLSv1.2;
+    ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+
+    # disable any limits to avoid HTTP 413 for large image uploads
+    client_max_body_size 0;
+
+    # required to avoid HTTP 411: see Issue #1486 (https://github.com/moby/moby/issues/1486)
+    chunked_transfer_encoding on;
+
+    location /v2/ {
+      # Do not allow connections from docker 1.5 and earlier
+      # docker pre-1.6.0 did not properly set the user agent on ping, catch "Go *" user agents
+      if ($http_user_agent ~ "^(docker\/1\.(3|4|5(?!\.[0-9]-dev))|Go ).*$" ) {
+        return 404;
+      }
+
+      # To add basic authentication to v2 use auth_basic setting.
+      auth_basic "Registry realm";
+      auth_basic_user_file /etc/nginx/conf.d/nginx.htpasswd;
+
+      ## If $docker_distribution_api_version is empty, the header is not added.
+      ## See the map directive above where this variable is defined.
+      add_header 'Docker-Distribution-Api-Version' $docker_distribution_api_version always;
+
+      proxy_pass                          http://docker-registry;
+      proxy_set_header  Host              $http_host;   # required for docker client's sake
+      proxy_set_header  X-Real-IP         $remote_addr; # pass on real client's IP
+      proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+      proxy_set_header  X-Forwarded-Proto $scheme;
+      proxy_read_timeout                  900;
+    }
+  }
+```
+
+It's time to create the password file in order to authenticate the user for the registry:
+
+`docker run --rm --entrypoint htpasswd registry:2 -bn <username> <password> > auth/nginx.htpasswd`
+
+You can now update the `docker-compose.yml` file like the following:
+
+```
+nginx:
+        build: /path/to/nginx/Dockerfile
+        restart: always
+        links:
+                - registry
+        volumes:
+                - ./auth:/etc/nginx/conf.d
+        ports:
+                - "80:80"
+                - "443:443"
+
+registry:
+        image: registry:2
+        restart: always
+        ports:
+                - 127.0.0.1:5000:5000
+        volumes:
+                - ./data:/var/lib/registry
+```
+
+The registry is ready to be launched: `docker-compose up --build -d`.
+
+**On the client side**, where the image are built, push or pull:
+
+You can try to push and pull to the private registry:
+
+```
+## Login to the registry
+docker login -u <username> -p <password> registry.mydomain.com:443
+
+## Build a current image (We assume that a Dockerfile is located in the current directory)
+docker build -t registry.mydomain.com:443/my-image-test:v0.1 .
+
+## Push the newly built image to our private registry
+docker push registry.mydomain.com:443/my-image-test:v0.1
+
+## Remove the image from our local environment
+docker image rm registry.mydomain.com:443/my-image-test:v0.1
+
+## Pull the image from our private registry
+docker pull registry.mydomain.com:443/my-image-test:v0.1
+```
+
+### Auto build versioned docker image
+
+In a micro-service architecture, you do not need to have every project on your machine. You can use pre-built docker images instead of cloned git repository.
+If you consider the previous command, you can add them to your CI in order to build image from specific version of your code.
+
+Few tips in order to do it:
+
+* Use environment variable on Circle CI to provide your docker registry credentials (if you use private docker registry)
+* Create another step on your Circle CI configuration which will run only for specific version tags AND if the previous step (testing) succeed
+* (Bonus): For those having a server, you can try an auto-deploy on a remote server from Circle CI
+
+### Micro-service architecture sample
+
+![Alt text](./basic_archi_mono_server.png?raw=true "Basic Architecture")
