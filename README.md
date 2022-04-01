@@ -666,7 +666,7 @@ If everything's fine, you should see your new rule applied to 1 branch: master
 
 You can test it by modifying your README.md by adding the fact that *master* branch is now protected against unsafe push, then:
 * `git add ./README.md` to add our file to push,
-* `git commit -m "README.md updated to explain master branch is now protected"` to explain what we ahve done
+* `git commit -m "README.md updated to explain master branch is now protected"` to explain what we have done
 * `git push origin master` to (try to) push our changes
 
 You should see an error message explaining that your branch is protected and you cannot push. If not, you did not configured your repo correctly.
